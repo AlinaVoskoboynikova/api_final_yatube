@@ -64,25 +64,13 @@ class FollowViewSet(viewsets.ModelViewSet):
         return Follow.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        queryset = Follow.objects.filter(
-            user=self.request.user
-        )
-        if queryset.exists():
+        user = self.request.user
+        following_username = serializer.validated_data.get('following')
+        following = User.objects.get(username=following_username)
+        queryset = Follow.objects.filter(user=user).filter(following=following)
+        if queryset.exists() or user == following:
             raise serializers.ValidationError(
                 'Нельзя повторно подписаться на пользователя'
-                'или на самого себя.'
+                'или на самого себя'
             )
-        serializer.save(user=self.request.user)
-
-    # def perform_create(self, serializer):
-    #         following = serializer.validated_data.get('following')
-    #         queryset = Follow.objects.filter(
-    #             user=self.request.user,
-    #             following__username=following
-    #         )
-    #         if queryset.exists():
-    #             raise serializers.ValidationError(
-    #                 'Нельзя повторно подписаться на пользователя'
-    #                 'или на самого себя.'
-    #             )
-    #         serializer.save(user=self.request.user)
+        serializer.save(user=user)
