@@ -1,9 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, permissions, serializers, viewsets
+from rest_framework import filters, permissions, viewsets
 from rest_framework.pagination import LimitOffsetPagination
 
-from posts.models import Follow, Group, Post, User
+from posts.models import Group, Post, User
 
 from .permissions import AuthorOrReading
 from .serializers import (CommentSerializer, FollowSerializer, GroupSerializer,
@@ -61,16 +61,9 @@ class FollowViewSet(viewsets.ModelViewSet):
     search_fields = ['user__username', 'following__username']
 
     def get_queryset(self):
-        return Follow.objects.filter(user=self.request.user)
+        user = get_object_or_404(User, username=self.request.user)
+        return user.follower
 
     def perform_create(self, serializer):
         user = self.request.user
-        following_username = serializer.validated_data.get('following')
-        following = User.objects.get(username=following_username)
-        queryset = Follow.objects.filter(user=user).filter(following=following)
-        if queryset.exists() or user == following:
-            raise serializers.ValidationError(
-                'Нельзя повторно подписаться на пользователя'
-                'или на самого себя'
-            )
         serializer.save(user=user)
